@@ -12,6 +12,13 @@ namespace test
     public class UnitTest1
     {
         [TestMethod]
+        public void TestImportData()
+        {
+            List<NodeDes> nodes = NodeDes.importData();
+            Assert.IsTrue(nodes.Count > 0);
+        }
+
+        [TestMethod]
         public void TestGetNodeList()
         {
             StreamReader sr = new StreamReader("data.txt");
@@ -72,17 +79,23 @@ namespace test
             node.soilTemperature = "4";
             node.Solar = "5";
 
+            Node nodeNoChanged = new Node("1");
+            nodeNoChanged.temperature = "1";
+            Node nodeUpdate = node.UpdateNewNode(nodeNoChanged);
+            Assert.IsTrue(nodeUpdate.bUpdated == "false");
+
             Node nodeNew = new Node("1");
             nodeNew.temperature = "11";
             nodeNew.humidity = "22";
 
-            Node nodeUpdate = node.UpdateNewNode(nodeNew);
+            nodeUpdate = node.UpdateNewNode(nodeNew);
 
             Assert.IsTrue(nodeNew.temperature == nodeUpdate.temperature);
             Assert.IsTrue(nodeUpdate.humidity == nodeNew.humidity);
             Assert.IsTrue(nodeUpdate.soilMoisture == node.soilMoisture);
             Assert.IsTrue(nodeUpdate.soilTemperature == node.soilTemperature);
             Assert.IsTrue(nodeUpdate.Solar == node.Solar);
+            Assert.IsTrue(nodeUpdate.bUpdated == "true");
         }
 
         [TestMethod]

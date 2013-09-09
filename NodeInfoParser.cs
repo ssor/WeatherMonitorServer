@@ -2,11 +2,13 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml;
+using Newtonsoft.Json;
 
 namespace WeatherMonitorServer
 {
@@ -26,6 +28,7 @@ namespace WeatherMonitorServer
         public string RainRate = string.Empty;
         public string BP = string.Empty;
         public string RainTotal = string.Empty;
+        public string bUpdated = "false";
         //public string dewPoint = string.Empty;
         public Node() { }
         public Node(string _id)
@@ -35,22 +38,32 @@ namespace WeatherMonitorServer
         public Node UpdateNewNode(Node _node)
         {
 
-#if DEBUG
             Type type = Type.GetType("WeatherMonitorServer.Node");
             FieldInfo[] fields = type.GetFields();
             fields.All(_field =>
             {
-                string newValue = (string)_field.GetValue(_node);
-                if (newValue != string.Empty && _field.Name != "nodeId")
+                if (_field.Name == "nodeId" || _field.Name == "bUpdated")
                 {
-                    string currentValue = (string)_field.GetValue(this);
-                    Debug.WriteLine("更新项：{0} {1} =>  {2}", _field.Name, currentValue, newValue);
-
+                    return true;
+                }
+                string newValue = (string)_field.GetValue(_node);
+                string currentValue = (string)_field.GetValue(this);
+                if (newValue != string.Empty)
+                {
+                    if (newValue != currentValue)
+                    {
+                        Debug.WriteLine(string.Format("更新项：{0} {1} =>  {2}", _field.Name, currentValue, newValue));
+                        _node.bUpdated = "true";
+                    }
+                }
+                if (newValue == string.Empty && currentValue != string.Empty)
+                {
+                    _field.SetValue(_node, currentValue);
                 }
                 return true;
             });
 
-#endif
+            return _node;
 
             if (_node.BP == string.Empty && this.BP != string.Empty)
             {
@@ -118,8 +131,14 @@ namespace WeatherMonitorServer
     }
     public class NodeInfoParser
     {
+        public static Action<Node> NotifyNodeChange = null;
         //public static List<Node> NodeList = null;
         public static Dictionary<string, Node> NodeDic = null;
+        public static string GetNodesJson()
+        {
+            return JsonConvert.SerializeObject(NodeDic.Values.ToList<Node>());
+        }
+
         public static List<Node> UpdateNodeInfo(string _xml)
         {
             if (NodeDic == null)
@@ -133,6 +152,7 @@ namespace WeatherMonitorServer
                 NodeDic.Add("6", new Node("6"));
                 NodeDic.Add("7", new Node("7"));
             }
+
             List<Node> nodeList = ParseXmlToNodeList(_xml);
             if (nodeList.Count > 0)
             {
@@ -141,7 +161,23 @@ namespace WeatherMonitorServer
                     if (NodeDic.ContainsKey(_node.nodeId))
                     {
                         Node n = NodeDic[_node.nodeId].UpdateNewNode(_node);
-                        NodeDic[n.nodeId] = n;
+                        if (n != null)
+                        {
+                            NodeDic[n.nodeId] = n;
+                            //notify changed node
+                            if (NotifyNodeChange != null)
+                            {
+                                NotifyNodeChange(n);
+                            }
+                        }
+#if DEBUG
+                        Debug.WriteLine("---------------------------------------------------");
+                        if (n != null)
+                        {
+                            Debug.WriteLine(n.formatedString());
+                        }
+                        Debug.WriteLine("---------------------------------------------------");
+#endif
                     }
                     return true;
                 });
@@ -165,11 +201,11 @@ namespace WeatherMonitorServer
                     Node n = parser(regVaue);
 #if DEBUG
                     Debug.WriteLine(regVaue);
-                    Debug.WriteLine("---------------------------------------------------");
-                    if (n != null)
-                    {
-                        Debug.WriteLine(n.formatedString());
-                    }
+                    //Debug.WriteLine("---------------------------------------------------");
+                    //if (n != null)
+                    //{
+                    //    Debug.WriteLine(n.formatedString());
+                    //}
 #endif
                     nodeList.Add(n);
                 }
@@ -283,5 +319,46 @@ namespace WeatherMonitorServer
 
         #endregion
 
+    }
+    public class NodeDes
+    {
+        public string nodeID = string.Empty;
+        public string des = string.Empty;
+        public NodeDes(string _id, string _des)
+        {
+            this.nodeID = _id;
+            this.des = _des;
+        }
+
+        public static string exportData()
+        {
+            List<NodeDes> list = new List<NodeDes>
+            {
+                new NodeDes("2","学15楼"),
+                new NodeDes("3","科技楼"),
+                new NodeDes("4","科技楼"),
+                new NodeDes("5","东体育场"),
+                new NodeDes("6","英东楼"),
+                new NodeDes("7","科技楼")
+            };
+
+            return JsonConvert.SerializeObject(list);
+            // [{"nodeID":"2","des":"学15楼"},{"nodeID":"3","des":"科技楼"},{"nodeID":"4","des":"科技楼"},{"nodeID":"5","des":"东体育场"},{"nodeID":"6","des":"英东楼"},{"nodeID":"7","des":"科技楼"}]
+        }
+        public static List<NodeDes> importData()
+        {
+            string strReadFilePath1 = @"./config.txt";
+            StreamReader srReadFile1 = new StreamReader(strReadFilePath1);
+            string strConfig = srReadFile1.ReadToEnd();
+            srReadFile1.Close();
+            Debug.WriteLine(strConfig);
+            //string strConfig = exportData();
+            List<NodeDes> nodes = (List<NodeDes>)JsonConvert.DeserializeObject<List<NodeDes>>(strConfig);
+            //if (nodes != null)
+            //{
+
+            //}
+            return nodes;
+        }
     }
 }
