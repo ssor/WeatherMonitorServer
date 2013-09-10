@@ -1,0 +1,159 @@
+<!DOCTYPE html>  <meta charset="utf-8" />
+  <title>WebSocket Test</title>
+  <script language="javascript" type="text/javascript">
+	var wsUri = "ws://192.168.1.103:9905/Client";
+	var output;
+	var nodeDes;
+	function init()
+	{
+		output = document.getElementById("output");
+		testWebSocket();
+	}
+	function testWebSocket()
+	{
+		websocket = new WebSocket(wsUri);
+		websocket.onopen = function(evt) { onOpen(evt) };
+		websocket.onclose = function(evt) { onClose(evt) };
+		websocket.onmessage = function(evt) { onMessage(evt) };
+		websocket.onerror = function(evt) { onError(evt) };
+	}
+	function onOpen(evt)
+	{
+		writeToScreen("CONNECTED");
+		//doSend("WebSocket rocks");
+	}
+	function onClose(evt)
+	{
+		writeToScreen("DISCONNECTED");
+	}
+	function onMessage(evt)
+	{
+		writeToScreen('<span style="color: blue;">RESPONSE: ' + evt.data+'</span>');
+		var data = JSON.parse(evt.data);
+		if(data.name == "nodes"){
+			showNodes(data.content);
+		}else if(data.name == "nodeDes"){
+			nodeDes = JSON.parse(data.content);
+		}
+		//websocket.close();
+	}
+	function findNodeLocation(nodeID)
+	{
+		for(var i=0; i< nodeDes.length;i++)
+		{
+			if(nodeDes[i].nodeID == nodeID)
+			{
+				return nodeDes[i].des;
+			}
+		}
+	}
+	function showNodes(content)
+	{
+		var nodes = JSON.parse(content);
+		if(nodes.length > 0){
+			for(var i=0; i< nodes.length; i++){
+				var node = nodes[i];
+				var location = findNodeLocation(node.nodeId);
+				writeToScreen('<span style="color: green;">' + location +':</span>');
+				switch(node.nodeId)
+				{
+					case "2":
+						showTempHumi(node);
+						showWeather(node);
+					break;
+					case "3":
+						showTempHumi(node);
+						showWeather(node);
+					break;
+					case "4":
+						showSoilTempHumi(node);
+						break;
+					case "5":
+						showTempHumi(node);
+						break;
+					case "6":
+						showTempHumi(node);
+						break;
+					case "7":
+						showTempHumi(node);
+						showWeather(node);
+					break;
+				}
+			}
+		}
+	}
+	function showWeather(node){
+		if(node.Solar != ""){
+			writeToScreen('<span style="color: black;">光照强度: ' + node.Solar +':</span>');
+		}
+		if(node.WindMax != ""){
+			writeToScreen('<span style="color: black;">最大风速: ' + node.WindMax +':</span>');
+		}
+
+		if(node.WindAvg != ""){
+			writeToScreen('<span style="color: black;">平均风速: ' + node.WindAvg +':</span>');
+		}	
+
+		if(node.WindDirAvg != ""){
+			writeToScreen('<span style="color: black;">平均风向: ' + node.WindDirAvg +':</span>');
+		}	
+
+		if(node.RainRate != ""){
+			writeToScreen('<span style="color: black;">雨量: ' + node.RainRate +':</span>');
+		}	
+		
+		if(node.RainTotal != ""){
+			writeToScreen('<span style="color: black;">总降雨量: ' + node.RainTotal +':</span>');
+		}	
+		
+		if(node.BP  != ""){
+			writeToScreen('<span style="color: black;">气压: ' + node.BP  +':</span>');
+		}	
+		
+	}
+	function showSoilTempHumi(node){
+		if(node.soilTemperature != ""){
+			writeToScreen('<span style="color: black;">土壤温度: ' + node.soilTemperature +':</span>');
+		}
+		if(node.soilMoisture != ""){
+			writeToScreen('<span style="color: black;">土壤湿度: ' + node.soilMoisture  +':</span>');
+		}
+	}
+	function showTempHumi(node)
+	{
+		if(node.temperature != ""){
+			writeToScreen('<span style="color: black;">温度: ' + node.temperature +':</span>');
+		}
+		if(node.humidity != ""){
+			writeToScreen('<span style="color: black;">湿度: ' + node.humidity +':</span>');
+		}
+	}
+	function onError(evt)
+	{
+		writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data);
+	}
+	function doSend(message)
+	{
+		writeToScreen("SENT: " + message);
+		websocket.send(message);
+	}
+	function writeToScreen(message)
+	{
+		var pre = document.createElement("p");
+		pre.style.wordWrap = "break-word";
+		pre.innerHTML = message;
+		output.appendChild(pre);
+	}
+	window.addEventListener("load", init, false);
+  </script>
+  
+  <h2>WebSocket Test</h2>
+  <div id="output"></div>
+  </html>
+  
+  
+  
+  
+  
+  
+  
