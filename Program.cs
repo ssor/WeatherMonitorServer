@@ -17,11 +17,13 @@ namespace WeatherMonitorServer
         #region Members
         static string strNodesDes = string.Empty;
         static Timer timerActOnInputData = new Timer();
-        static long totalByteCount = 1000000;
+        static long totalByteCount = 0;
         static byte[] myReadBuffer = new byte[1024];
         static StringBuilder sbuilderInputData = new StringBuilder();
 
         static List<IWebSocketConnection> ClientList = new List<IWebSocketConnection>();
+        static TcpClient tcpClient = null;
+
         #endregion
 
 
@@ -29,10 +31,7 @@ namespace WeatherMonitorServer
         {
             updateConfig();
 
-
-            TcpClient client = new TcpClient();
-
-            client.BeginConnect("172.16.180.10", 9005, new AsyncCallback(connectCallback), client);
+            rebootTcpClient();
 
             NodeInfoParser.NotifyNodeChange = ReportChangedNode;
 
@@ -52,10 +51,36 @@ namespace WeatherMonitorServer
 
             goto READ_LOOP;
         }
+        static void rebootTcpClient()
+        {
+            Action func = () =>
+                {
+                    tcpClient = new TcpClient();
+
+                    tcpClient.BeginConnect("172.16.180.10", 9005, new AsyncCallback(connectCallback), tcpClient);
+                };
+            try
+            {
+                if (tcpClient == null)
+                {
+                    func();
+                }
+                else
+                {
+                    tcpClient.Close();
+                    func();
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.Message);
+            }
+        }
         static void updateConfig()
         {
             List<NodeDes> NodeDesList = NodeDes.importData();
             strNodesDes = JsonConvert.SerializeObject(NodeDesList);
+            NodeInfoParser.UpdateNodeDic(NodeDesList);
             Console.WriteLine("节点信息已更新：");
             Console.WriteLine(strNodesDes);
         }
@@ -111,17 +136,24 @@ namespace WeatherMonitorServer
             int numberOfBytesRead;
 
             numberOfBytesRead = myNetworkStream.EndRead(ar);
-            totalByteCount += numberOfBytesRead;
-            Console.WriteLine("总共接收数据量(byte)： " + totalByteCount.ToString());
-            sbuilderInputData.Append(Encoding.ASCII.GetString(myReadBuffer, 0, numberOfBytesRead));
+            if (numberOfBytesRead <= 0)
+            {
+                myNetworkStream.Close();
+                rebootTcpClient();
+            }
+            else
+            {
+                totalByteCount += numberOfBytesRead;
+                Console.WriteLine("总共接收数据量(byte)： " + totalByteCount.ToString());
+                sbuilderInputData.Append(Encoding.ASCII.GetString(myReadBuffer, 0, numberOfBytesRead));
 
-            // message received may be larger than buffer size so loop through until you have it all.
-            myNetworkStream.BeginRead(myReadBuffer, 0, myReadBuffer.Length,
-                                           new AsyncCallback(readCallback),
-                                           myNetworkStream);
+                // message received may be larger than buffer size so loop through until you have it all.
+                myNetworkStream.BeginRead(myReadBuffer, 0, myReadBuffer.Length,
+                                               new AsyncCallback(readCallback),
+                                               myNetworkStream);
 
 
-
+            }
         }
         #region WebSocket Server
         static void StartWebSocketServer(int _websocketPort)

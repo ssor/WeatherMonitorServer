@@ -27,7 +27,7 @@ namespace WeatherMonitorServer
         public string WindDirAvg = string.Empty;
         public string RainRate = string.Empty;
         public string BP = string.Empty;
-        public string RainTotal = string.Empty;
+        //public string RainTotal = string.Empty;
         public string bUpdated = "false";
         //public string dewPoint = string.Empty;
         public Node() { }
@@ -64,69 +64,11 @@ namespace WeatherMonitorServer
             });
 
             return _node;
-
-            if (_node.BP == string.Empty && this.BP != string.Empty)
-            {
-
-                _node.BP = this.BP;
-            }
-
-            if (_node.RainTotal == string.Empty && this.RainTotal != string.Empty)
-            {
-                _node.RainTotal = this.RainTotal;
-            }
-            if (_node.temperature == string.Empty && this.temperature != string.Empty)
-            {
-                _node.temperature = this.temperature;
-            }
-            if (_node.humidity == string.Empty && this.humidity != string.Empty)
-            {
-                _node.humidity = this.humidity;
-            }
-
-            if (_node.soilMoisture == string.Empty && this.soilMoisture != string.Empty)
-            {
-                _node.soilMoisture = this.soilMoisture;
-            }
-
-            if (_node.soilTemperature == string.Empty && this.soilTemperature != string.Empty)
-            {
-                _node.soilTemperature = this.soilTemperature;
-            }
-
-            if (_node.Solar == string.Empty && this.Solar != string.Empty)
-            {
-                _node.Solar = this.Solar;
-            }
-
-            if (_node.WindMax == string.Empty && this.WindMax != string.Empty)
-            {
-                _node.WindMax = this.WindMax;
-            }
-
-            if (_node.WindAvg == string.Empty && this.WindAvg != string.Empty)
-            {
-                _node.WindAvg = this.WindAvg;
-            }
-
-            if (_node.WindDirAvg == string.Empty && this.WindDirAvg != string.Empty)
-            {
-                _node.WindDirAvg = this.WindDirAvg;
-            }
-
-            if (_node.RainRate == string.Empty && this.RainRate != string.Empty)
-            {
-                _node.RainRate = this.RainRate;
-            }
-
-
-
-            return _node;
         }
         public string formatedString()
         {
-            return string.Format("id => {0} temp:{1} humi:{2} \r\n soil:{3},{4} \r\n Weather:{5}(Solar),{6}(WindMax),{7}(WindAvg),{8}(WindDirAvg),{9}(RainRate),{10}(BP),{11}(RainTotal)",
-                nodeId, temperature, humidity, soilMoisture, soilTemperature, Solar, WindMax, WindAvg, WindDirAvg, RainRate, BP, RainTotal);
+            return string.Format("id => {0} temp:{1} humi:{2} \r\n soil:{3},{4} \r\n Weather:{5}(Solar),{6}(WindMax),{7}(WindAvg),{8}(WindDirAvg),{9}(RainRate),{10}(BP)",
+                nodeId, temperature, humidity, soilMoisture, soilTemperature, Solar, WindMax, WindAvg, WindDirAvg, RainRate, BP);
         }
     }
     public class NodeInfoParser
@@ -138,19 +80,32 @@ namespace WeatherMonitorServer
         {
             return JsonConvert.SerializeObject(NodeDic.Values.ToList<Node>());
         }
-
+        public static void UpdateNodeDic(List<NodeDes> list)
+        {
+            if (NodeDic == null)
+            {
+                NodeDic = new Dictionary<string, Node>();
+            }
+            foreach (NodeDes nd in list)
+            {
+                if (!NodeDic.ContainsKey(nd.nodeID))
+                {
+                    NodeDic.Add(nd.nodeID, new Node(nd.nodeID));
+                }
+            }
+        }
         public static List<Node> UpdateNodeInfo(string _xml)
         {
             if (NodeDic == null)
             {
                 NodeDic = new Dictionary<string, Node>();
                 //NodeList = new List<Node> { new Node("2"), new Node("3"), new Node("4"), new Node("5"), new Node("6") };
-                NodeDic.Add("2", new Node("2"));
-                NodeDic.Add("3", new Node("3"));
-                NodeDic.Add("4", new Node("4"));
-                NodeDic.Add("5", new Node("5"));
-                NodeDic.Add("6", new Node("6"));
-                NodeDic.Add("7", new Node("7"));
+                //NodeDic.Add("2", new Node("2"));
+                //NodeDic.Add("3", new Node("3"));
+                //NodeDic.Add("4", new Node("4"));
+                //NodeDic.Add("5", new Node("5"));
+                //NodeDic.Add("6", new Node("6"));
+                //NodeDic.Add("7", new Node("7"));
             }
 
             List<Node> nodeList = ParseXmlToNodeList(_xml);
@@ -243,6 +198,7 @@ namespace WeatherMonitorServer
             Node newNode = new Node();
             XmlDocument xd = new XmlDocument();
             xd.LoadXml(_xml);
+            ParseNodeValue("nodeId", xd, newNode, string.Empty, nodeIdFormatter);
             ParseNodeValue("Solar", xd, newNode);
             ParseNodeValue("WindMax", xd, newNode);
             ParseNodeValue("WindAvg", xd, newNode);
@@ -250,6 +206,8 @@ namespace WeatherMonitorServer
             ParseNodeValue("RainRate", xd, newNode);
             ParseNodeValue("BP", xd, newNode);
             ParseNodeValue("RainTotal", xd, newNode);
+            ParseNodeValue("Temp", xd, newNode, "temperature");
+            ParseNodeValue("Humidity", xd, newNode, "humidity");
             return newNode;
         }
 
@@ -258,6 +216,7 @@ namespace WeatherMonitorServer
             Node newNode = new Node();
             XmlDocument xd = new XmlDocument();
             xd.LoadXml(_xml);
+            ParseNodeValue("nodeId", xd, newNode, string.Empty, nodeIdFormatter);
             ParseNodeValue("temp", xd, newNode, "soilTemperature");
             return newNode;
         }
@@ -267,6 +226,7 @@ namespace WeatherMonitorServer
             Node newNode = new Node();
             XmlDocument xd = new XmlDocument();
             xd.LoadXml(_xml);
+            ParseNodeValue("nodeId", xd, newNode, string.Empty, nodeIdFormatter);
             ParseNodeValue("soilMoisture", xd, newNode);
             return newNode;
         }
@@ -276,6 +236,7 @@ namespace WeatherMonitorServer
             Node newNode = new Node();
             XmlDocument xd = new XmlDocument();
             xd.LoadXml(_xml);
+            ParseNodeValue("nodeId", xd, newNode, string.Empty, nodeIdFormatter);
             ParseNodeValue("temperature", xd, newNode);
             ParseNodeValue("humidity", xd, newNode);
             return newNode;
@@ -289,16 +250,25 @@ namespace WeatherMonitorServer
             fieldInfo.SetValue(_node, _value);
             return _node;
         }
-        static Node ParseNodeValue(string property, XmlDocument _xd, Node _node, string _nodeFieldName = "")
+        static string nodeIdFormatter(string _id)
+        {
+            if (_id.IndexOf(".") > 0)
+            {
+                return _id.Substring(0, _id.IndexOf("."));
+            }
+            else
+                return _id;
+        }
+        static Node ParseNodeValue(string property, XmlDocument _xd, Node _node, string _nodeFieldName = "", Func<string, string> valueFormatter = null)
         {
             if (_node == null)
             {
                 _node = new Node();
             }
-            if (_nodeFieldName == "") _nodeFieldName = property;
-            XmlNode nodeID = _xd.SelectSingleNode("/MotePacket/NodeId");
-            string id = nodeID.InnerText;
-            _node.nodeId = id.Substring(0, id.IndexOf("."));
+            if (_nodeFieldName == "" || _nodeFieldName == null) _nodeFieldName = property;
+            //XmlNode nodeID = _xd.SelectSingleNode("/MotePacket/NodeId");
+            //string id = nodeID.InnerText;
+            //_node.nodeId = id.Substring(0, id.IndexOf("."));
             XmlNodeList list = _xd.SelectNodes("/MotePacket/ParsedDataElement");
             foreach (XmlNode xn in list)
             {
@@ -306,7 +276,9 @@ namespace WeatherMonitorServer
                 if (nodeName.InnerText == property)
                 {
                     XmlNode nodeValue = xn.SelectSingleNode("ConvertedValue");
-                    SetFieldValueDynamic(_node, _nodeFieldName, nodeValue.InnerText);
+                    string value = nodeValue.InnerText;
+                    if (valueFormatter != null) value = valueFormatter(value);
+                    SetFieldValueDynamic(_node, _nodeFieldName, value);
                     break;
                 }
                 else
